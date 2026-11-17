@@ -1,0 +1,12 @@
+{
+  "name": "refugio-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Interface web do Refúgio integrada à API Java",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test"
+  }
+}
