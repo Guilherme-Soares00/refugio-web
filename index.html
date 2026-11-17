@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#173e32" />
+    <meta
+      name="description"
+      content="Consulte pontos de alívio térmico, recursos e medições e acompanhe suas ocorrências no Refúgio."
+    />
+    <title>Refúgio · Pontos de alívio térmico</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/web/styles.css" />
+    <script type="module" src="/web/app.mjs"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Ir para o conteúdo</a>
+    <header class="topbar">
+      <a class="brand" href="#pontos" aria-label="Refúgio, início"
+        ><span class="brand-mark" aria-hidden="true">r.</span
+        ><span>refúgio<small>REDE DE ALÍVIO TÉRMICO</small></span></a
+      >
+      <nav class="navigation" aria-label="Navegação principal">
+        <a href="#pontos" data-view="pontos" aria-current="page">Pontos</a>
+        <a href="#ocorrencias" data-view="ocorrencias">Minhas ocorrências</a>
+        <a href="#gestao" data-view="gestao">Gestão</a>
+        <a href="#diagnostico" data-view="diagnostico">Diagnóstico</a>
+      </nav>
+      <div class="account">
+        <span id="identity">Acesso público</span
+        ><button type="button" id="account-button" class="button light">Entrar</button>
+      </div>
+    </header>
+    <div class="demo-note">
+      <span class="note-dot" aria-hidden="true"></span><strong>Ambiente demonstrativo</strong
+      ><span>Dados fictícios. Confirme endereço e horários antes de se deslocar.</span>
+    </div>
+    <main id="main" tabindex="-1">
+      <div id="feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+      <section id="view" aria-label="Pontos de alívio térmico"></section>
+    </main>
+    <footer>
+      <span>Refúgio · Cuidado que começa pelo acesso à informação.</span
+      ><a href="/swagger-ui/index.html" target="_blank" rel="noopener">Documentação da API ↗</a
+      ><span>Leituras demonstrativas não são um índice clínico.</span>
+    </footer>
+    <dialog id="editor" aria-labelledby="dialog-title">
+      <div class="dialog-top">
+        <h2 id="dialog-title"></h2>
+        <button type="button" id="close-dialog" class="button subtle" aria-label="Fechar diálogo">Fechar ×</button>
+      </div>
+      <div id="dialog-body"></div>
+    </dialog>
+    <noscript
+      ><p class="noscript">
+        Ative o JavaScript para consultar os pontos e utilizar os formulários. A documentação da API continua disponível
+        no link abaixo.
+      </p></noscript
+    >
+  </body>
+</html>
