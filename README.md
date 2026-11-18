@@ -6,6 +6,16 @@ Interface web para consultar pontos de alívio térmico, acompanhar recursos e m
 
 Este repositório contém somente o frontend e seu servidor local. A API Java, as regras de negócio e o PostgreSQL permanecem no projeto [Refúgio](https://github.com/Guilherme-Soares00/refugio).
 
+## Equipe
+
+| Integrante | RM | Turma |
+| --- | --- | --- |
+| Luis Fillipe Rodrigues Seripieri | 567918 | 2TDSPB |
+| Gabriel Rocha de Souza | 567023 | 2TDSPB |
+| Luiz Kichimoto Valdevino | 567726 | 2TDSPB |
+| Guilherme Soares | 568227 | 2TDSPB |
+| Gabriel Stuani | 566682 | 2TDSPB |
+
 ## Executar
 
 Pré-requisitos: Node.js 22 ou superior e a API Refúgio em execução com seus dados demonstrativos habilitados. Siga o README do backend para iniciar Java/PostgreSQL. Não é necessário instalar pacotes para executar ou testar este frontend: ele usa HTML, CSS, JavaScript e módulos nativos do Node.js.
