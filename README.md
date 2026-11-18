@@ -106,6 +106,10 @@ A suíte usa `node:test` e servidores HTTP isolados. Verifica contratos do clien
 
 Para uma conferência manual com o backend: consulte pontos sem login; registre uma ocorrência como cidadão e guarde seu ID; entre como gestor, crie e edite um ponto e seus recursos, registre uma medição e avance a ocorrência; volte ao cidadão e confira o estado atualizado. Verifique também os erros no Swagger, pois ocultar controles não prova a autorização da API.
 
+## Identidade visual e recursos locais
+
+O web acompanha as cores e os componentes do aplicativo Mobile da equipe: verde-petróleo, fundo claro, cartões brancos e símbolo de abrigo. A fonte Roboto e os ícones Material são servidos localmente, sem CDN na execução. As licenças estão em `web/assets/fonts/OFL.txt` e `web/assets/icons/LICENSE.txt`. As transições respeitam a preferência de movimento reduzido do navegador.
+
 ## Estrutura
 
 ```text

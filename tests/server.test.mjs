@@ -44,6 +44,19 @@ test('serve index e módulos locais sem publicar arquivos privados', async t => 
   assert.equal((await fetch(origin)).headers.get('x-content-type-options'), 'nosniff');
 });
 
+test('serve fonte local WOFF2 sem permitir extensões arbitrárias', async t => {
+  const origin = await fixture(t, async root => {
+    await mkdir(join(root, 'web', 'assets', 'fonts'), { recursive: true });
+    await writeFile(join(root, 'web', 'assets', 'fonts', 'roboto-latin.woff2'), Buffer.from('wOF2'));
+    await writeFile(join(root, 'web', 'arquivo.bin'), 'privado');
+  });
+  const font = await fetch(origin + '/web/assets/fonts/roboto-latin.woff2');
+  assert.equal(font.status, 200);
+  assert.equal(font.headers.get('content-type'), 'font/woff2');
+  assert.equal(await font.text(), 'wOF2');
+  assert.equal((await fetch(origin + '/web/arquivo.bin')).status, 404);
+});
+
 function rawRequest(origin, path, options = {}) {
   return new Promise((resolve, reject) => {
     const request = httpRequest(origin, { path, ...options }, response => {

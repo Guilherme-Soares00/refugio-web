@@ -1,5 +1,5 @@
 import { readCollection } from './api.mjs';
-import { h, label, formatDate, selectionForPage } from './ui.mjs';
+import { h, label, formatDate, formatTemperature, selectionForPage, latestOnly } from './ui.mjs';
 
 export function createPoints(context) {
   const {
@@ -10,7 +10,6 @@ export function createPoints(context) {
     session,
     manager,
     action,
-    heading,
     text,
     row,
     badge,
@@ -24,6 +23,8 @@ export function createPoints(context) {
     showAuth,
     flash,
   } = context;
+  const cardResourceSlots = new Map();
+
   function pointsPage() {
     const filters = h('form', { className: 'filters', 'aria-label': 'Filtrar pontos' });
     const bairro = h('input', {
@@ -35,7 +36,7 @@ export function createPoints(context) {
       value: state.filters.bairro,
     });
     filters.append(
-      h('div', { className: 'field search-field' }, h('label', { for: 'filter-bairro' }, 'Bairro'), bairro),
+      h('div', { className: 'field search-field' }, h('label', { for: 'filter-bairro' }, 'Bairro'), h('div', { className: 'search-input' }, bairro)),
     );
     for (const [name, title, options] of [
       [
@@ -101,15 +102,20 @@ export function createPoints(context) {
       void loadPoints(`/api/pontos/busca?${query}`);
     });
     const list = h('div', { id: 'point-list', className: 'point-list' });
-    const detail = h('aside', { id: 'point-detail', className: 'detail-panel', 'aria-label': 'Detalhe do ponto' });
+    const detail = h('aside', { id: 'point-detail', className: 'detail-panel', tabIndex: -1, 'aria-label': 'Detalhe do ponto' });
     detail.append(empty('Conheça um ponto', 'Selecione um ponto da lista para consultar recursos e medições.'));
     view.replaceChildren(
-      heading(
-        'Pontos de alívio térmico',
-        'Encontre um local, confira os recursos e consulte as últimas leituras.',
+      h(
+        'div',
+        { className: 'page-heading' },
+        h('div', {},
+          h('p', { className: 'page-title' }, 'Explorar'),
+          h('h1', {}, 'Uma pausa perto do seu caminho.'),
+          text('Veja os recursos de cada ponto antes de sair.'),
+        ),
         manager()
-          ? [action('+ Novo ponto', () => edit('ponto', 'Cadastrar ponto', '/api/pontos'), 'button primary')]
-          : [],
+          ? row(action('+ Novo ponto', () => edit('ponto', 'Cadastrar ponto', '/api/pontos'), 'button primary'))
+          : null,
       ),
       filters,
       h(
@@ -121,7 +127,7 @@ export function createPoints(context) {
           h(
             'div',
             { className: 'section-title' },
-            h('h2', {}, 'Na sua rede'),
+            h('h2', {}, 'Pontos de alívio térmico'),
             h('span', { className: 'muted' }, '6 por página'),
           ),
           list,
@@ -136,46 +142,55 @@ export function createPoints(context) {
     const target = document.querySelector('#point-list');
     if (!target) return;
     const ticket = gates.list.begin();
+    cardResourceSlots.clear();
     state.pointUrl = url;
     loading(target, 'Buscando pontos da rede…');
     try {
       const data = readCollection(await api.request(url, { signal: ticket.signal }), 'pontos');
       if (!ticket.current()) return;
       target.setAttribute('aria-busy', 'false');
-      const cards = data.items.map((point) =>
-        h(
+      const resourceSlots = [];
+      const cards = data.items.map((point) => {
+        const resources = h('span', { className: 'card-resources', 'aria-busy': 'true' }, 'Consultando recursos…');
+        resourceSlots.push({ point, target: resources, ticket, gate: latestOnly() });
+        return h(
           'button',
           {
             type: 'button',
             className: 'point-card',
             'data-id': String(point.id),
             'aria-pressed': String(point.id === state.selectedId),
-            onClick: () => {
-              void selectPoint(point.id, point._links?.self?.href);
+            onClick: async () => {
+              await selectPoint(point.id, point._links?.self?.href);
+              const detailTarget = document.querySelector('#point-detail');
+              if (state.selectedId === point.id && detailTarget && window.matchMedia('(max-width: 860px)').matches) {
+                detailTarget.focus({ preventScroll: true });
+                window.scrollTo({ top: window.scrollY + detailTarget.getBoundingClientRect().top - 20, behavior: 'instant' });
+              }
             },
           },
           h(
             'span',
             { className: 'card-top' },
-            h('span', { className: 'code' }, point.codigoPublico),
+            h('span', { className: 'card-neighborhood' }, point.bairro),
             badge(point.status),
           ),
           h('h3', {}, point.nome),
-          text(point.bairro),
-          h(
-            'span',
-            { className: 'card-bottom' },
-            h('span', {}, point.horarioTexto),
-            h('span', { className: 'card-arrow', 'aria-hidden': 'true' }, '↗'),
-          ),
-        ),
-      );
+          h('span', { className: 'card-meta' }, `${point.codigoPublico} · ${point.horarioTexto}`),
+          resources,
+          h('span', { className: 'card-bottom' }, h('span', { className: 'card-arrow' }, 'Ver detalhes →')),
+        );
+      });
       target.replaceChildren(
         ...(cards.length
           ? cards
           : [empty('Nenhum ponto encontrado', 'Tente outro bairro, status ou recurso disponível.')]),
         pager(data, loadPoints),
       );
+      for (const slot of resourceSlots) {
+        cardResourceSlots.set(slot.point.id, slot);
+        void loadCardResources(slot);
+      }
       if (!data.items.length && !state.requestedId) {
         gates.detail.cancel();
         gates.history.cancel();
@@ -254,7 +269,7 @@ export function createPoints(context) {
         h(
           'div',
           { className: 'section-title' },
-          h('h3', {}, 'Recursos disponíveis'),
+          h('h3', {}, 'O que você encontra'),
           manager()
             ? action('+ Recurso', () => edit('recurso', 'Adicionar recurso', '/api/recursos', { pontoId: point.id }))
             : null,
@@ -267,16 +282,18 @@ export function createPoints(context) {
         h(
           'div',
           { className: 'detail-header' },
+          h('p', { className: 'detail-title' }, 'Detalhes do ponto'),
+          h('span', { className: 'detail-symbol', 'aria-hidden': 'true' }),
           h(
             'div',
             { className: 'card-top' },
-            h('span', { className: 'code' }, `${point.codigoPublico} · ID ${point.id}`),
+            h('span', { className: 'code' }, `${point.codigoPublico} · ${point.bairro}`),
             badge(point.status),
           ),
           h('h2', {}, point.nome),
-          text(`${point.logradouro}, ${point.numero} · ${point.bairro}`),
-          text(`${point.cidade} / ${point.uf}`),
-          h('div', { className: 'hours' }, h('span', {}, 'HORÁRIO DECLARADO'), h('strong', {}, point.horarioTexto)),
+          text(`${point.logradouro}, ${point.numero}`),
+          text(`${point.bairro} · ${point.cidade} / ${point.uf}`),
+          h('div', { className: 'hours' }, h('span', {}, 'Horário informado:'), h('strong', {}, point.horarioTexto)),
           row(actions),
         ),
         resources,
@@ -286,7 +303,7 @@ export function createPoints(context) {
           h(
             'div',
             { className: 'section-title' },
-            h('h3', {}, 'Condições e medições'),
+            h('h3', {}, 'Última medição'),
             manager()
               ? action('+ Medição', () => edit('medicao', 'Registrar medição', '/api/medicoes', { pontoId: point.id }))
               : null,
@@ -295,7 +312,7 @@ export function createPoints(context) {
             ? h(
                 'div',
                 { className: 'latest-reading' },
-                h('strong', {}, `${point.ultimaMedicao.temperaturaC} °C`),
+                h('strong', {}, formatTemperature(point.ultimaMedicao.temperaturaC)),
                 h('span', {}, `${point.ultimaMedicao.umidadePct}% de umidade`),
                 h(
                   'span',
@@ -326,6 +343,37 @@ export function createPoints(context) {
     }
   }
 
+  function resourceIcon(resource) {
+    return h('span', {
+      className: `status-icon ${resource.disponivel ? 'available' : 'unavailable'}`,
+      'aria-hidden': 'true',
+    });
+  }
+
+  async function loadCardResources({ point, target, ticket, gate }) {
+    if (!ticket.current()) return;
+    const resourceTicket = gate.begin();
+    try {
+      const data = readCollection(await api.request(
+        point._links?.recursos?.href || `/api/pontos/${point.id}/recursos`,
+        { signal: AbortSignal.any([ticket.signal, resourceTicket.signal]) },
+      ), 'recursos');
+      if (!ticket.current() || !resourceTicket.current()) return;
+      target.setAttribute('aria-busy', 'false');
+      target.replaceChildren(...(data.items.length
+        ? data.items.map((resource) => h('span', { className: 'card-resource' },
+          resourceIcon(resource),
+          h('span', {}, `${label(resource.tipo)} · ${resource.disponivel ? 'Disponível' : 'Indisponível'}`),
+        ))
+        : [h('span', { className: 'muted' }, 'Nenhum recurso cadastrado.')]
+      ));
+    } catch (error) {
+      if (!ticket.current() || !resourceTicket.current()) return;
+      target.setAttribute('aria-busy', 'false');
+      target.replaceChildren(h('span', { className: 'muted' }, 'Não foi possível consultar os recursos. Abra o detalhe para tentar novamente.'));
+    }
+  }
+
   async function loadResources(point, target, ticket) {
     loading(target, 'Consultando recursos…');
     try {
@@ -345,12 +393,12 @@ export function createPoints(context) {
                 { className: 'resource-row' },
                 h(
                   'div',
-                  {},
-                  h('strong', {}, label(resource.tipo)),
-                  h('span', { className: 'muted' }, ` · ID ${resource.id}`),
-                  text(
-                    resource.disponivel ? 'Disponível' : 'Indisponível',
-                    resource.disponivel ? 'available' : 'muted',
+                  { className: 'resource-info' },
+                  resourceIcon(resource),
+                  h('div', {},
+                    h('strong', {}, label(resource.tipo)),
+                    manager() ? h('span', { className: 'muted' }, ` · ID ${resource.id}`) : null,
+                    text(resource.disponivel ? 'Disponível' : 'Indisponível', 'resource-status'),
                   ),
                 ),
                 manager()
@@ -367,9 +415,13 @@ export function createPoints(context) {
                       action(
                         'Excluir',
                         () =>
-                          remove(`/api/recursos/${resource.id}`, `o recurso #${resource.id}`, async () =>
-                            selectPoint(point.id),
-                          ),
+                          remove(`/api/recursos/${resource.id}`, `o recurso #${resource.id}`, async () => {
+                            const slot = cardResourceSlots.get(point.id);
+                            if (slot) void loadCardResources(slot);
+                            if (state.selectedId === point.id && document.querySelector('#point-detail')) {
+                              await selectPoint(point.id);
+                            }
+                          }),
                         'button danger',
                       ),
                     )
@@ -396,7 +448,7 @@ export function createPoints(context) {
               h(
                 'div',
                 { className: 'history-row' },
-                h('strong', {}, `${reading.temperaturaC} °C · ${reading.umidadePct}%`),
+                h('strong', {}, `${formatTemperature(reading.temperaturaC)} · ${reading.umidadePct}%`),
                 h('span', {}, label(reading.origem)),
                 h('time', { dateTime: reading.medidaEm }, formatDate(reading.medidaEm)),
               ),

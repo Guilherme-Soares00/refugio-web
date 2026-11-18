@@ -14,6 +14,7 @@ const types = {
   '.png': 'image/png',
   '.webp': 'image/webp',
   '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
 };
 
 function error(response, status, message) {

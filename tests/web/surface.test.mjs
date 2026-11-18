@@ -9,7 +9,7 @@ test('entrada web local oferece navegação, avisos e módulos sem dependências
   assert.match(html, /lang="pt-BR"/);
   assert.match(html, /href="\/web\/styles.css"/);
   assert.match(html, /type="module" src="\/web\/app.mjs"/);
-  for (const name of ['Pontos', 'Minhas ocorrências', 'Gestão', 'Diagnóstico']) assert.ok(html.includes(name));
+  for (const name of ['Explorar', 'Minhas ocorrências', 'Gestão', 'Diagnóstico']) assert.ok(html.includes(name));
   assert.match(html, /role="status"/);
   assert.match(html, /<dialog/);
   assert.match(html, /<noscript\s*>/);

@@ -83,6 +83,8 @@ const labels = {
   ARDUINO: 'Arduino',
 };
 export const label = (value) => labels[value] || value || 'Não informado';
+export const formatTemperature = (value) =>
+  `${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)} °C`;
 export const formatDate = (value) =>
   value
     ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
